@@ -102,6 +102,7 @@ uint16_t GigaDisplay_GFX::getRawPixel(int16_t x, int16_t y) {
 
 void GigaDisplay_GFX::fillScreen(uint16_t color) {
   if (hasBuffer()) {
+    startWrite();
     uint8_t hi = color >> 8, lo = color & 0xFF;
     if (hi == lo) {
       memset(buffer, lo, WIDTH * HEIGHT * 2);
@@ -110,6 +111,7 @@ void GigaDisplay_GFX::fillScreen(uint16_t color) {
       for (i = 0; i < pixels; i++)
         buffer[i] = color;
     }
+    endWrite();
   }
 }
 
