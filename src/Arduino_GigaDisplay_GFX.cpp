@@ -102,6 +102,7 @@ uint16_t GigaDisplay_GFX::getRawPixel(int16_t x, int16_t y) {
 
 void GigaDisplay_GFX::fillScreen(uint16_t color) {
   if (hasBuffer()) {
+	startWrite();	// PR #3
     uint8_t hi = color >> 8, lo = color & 0xFF;
     if (hi == lo) {
       memset(buffer, lo, WIDTH * HEIGHT * 2);
@@ -110,6 +111,7 @@ void GigaDisplay_GFX::fillScreen(uint16_t color) {
       for (i = 0; i < pixels; i++)
         buffer[i] = color;
     }
+    endWrite();		// PR #3
   }
 }
 
@@ -215,19 +217,23 @@ void GigaDisplay_GFX::drawFastHLine(int16_t x, int16_t y, int16_t w,
 
 void GigaDisplay_GFX::drawFastRawVLine(int16_t x, int16_t y, int16_t h,
                                        uint16_t color) {
+  startWrite();
   // x & y already in raw (rotation 0) coordinates, no need to transform.
   uint16_t *buffer_ptr = buffer + y * WIDTH + x;
   for (int16_t i = 0; i < h; i++) {
     (*buffer_ptr) = color;
     buffer_ptr += WIDTH;
   }
+  endWrite();
 }
 
 void GigaDisplay_GFX::drawFastRawHLine(int16_t x, int16_t y, int16_t w,
                                        uint16_t color) {
+  startWrite();
   // x & y already in raw (rotation 0) coordinates, no need to transform.
   uint32_t buffer_index = y * WIDTH + x;
   for (uint32_t i = buffer_index; i < buffer_index + w; i++) {
     buffer[i] = color;
   }
+  endWrite();
 }
