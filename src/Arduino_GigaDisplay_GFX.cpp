@@ -40,7 +40,21 @@ void GigaDisplay_GFX::startWrite() {
 
 void GigaDisplay_GFX::endWrite() {
   //refresh_sem.release();
-  _refresh_thd->flags_set(0x1);
+  if (!buffering)
+    _refresh_thd->flags_set(0x1);
+}
+
+// If buffering, defer endWrite calls until endBuffering is called.
+void GigaDisplay_GFX::startBuffering() {
+  buffering = true;
+}
+
+void GigaDisplay_GFX::endBuffering() {
+  if (buffering)
+  {
+    buffering = false;
+    endWrite();
+  }
 }
 
 void GigaDisplay_GFX::drawPixel(int16_t x, int16_t y, uint16_t color) {

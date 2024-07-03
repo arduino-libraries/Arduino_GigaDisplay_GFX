@@ -31,6 +31,8 @@ class GigaDisplay_GFX : public Adafruit_GFX {
 
     void startWrite();
     void endWrite();
+    void startBuffering();
+    void endBuffering();
 
     uint16_t color565(uint8_t red, uint8_t green, uint8_t blue) {
       return ((red & 0xF8) << 8) | ((green & 0xFC) << 3) | (blue >> 3);
@@ -45,7 +47,8 @@ class GigaDisplay_GFX : public Adafruit_GFX {
   private:
     Arduino_H7_Video* display;
     void refresh_if_needed();
-    bool need_refresh = false;
+    //bool need_refresh = false;
+    bool buffering = false;
     uint32_t last_refresh = 0;
     rtos::Thread* _refresh_thd;
 };
