@@ -7,6 +7,7 @@
 #include "Adafruit_SPITFT.h"
 #include "dsi.h"
 #include "SDRAM.h"
+#include "rtos.h"
 
 class GigaDisplay_GFX : public Adafruit_GFX {
   public:
