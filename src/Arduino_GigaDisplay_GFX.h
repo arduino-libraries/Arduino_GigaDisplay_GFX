@@ -2,10 +2,19 @@
 #ifndef __ARDUINO_GIGADISPLAY_GFX__
 #define __ARDUINO_GIGADISPLAY_GFX__
 
+#ifdef __ZEPHYR__
+#include "Adafruit_GFX.h"
+#include "Arduino_GigaDisplay.h"
+//#include "Adafruit_SPITFT.h"
+#endif
+
+#ifdef __MBED__
 #include "Arduino_H7_Video.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_SPITFT.h"
 #include "dsi.h"
+#endif
+
 #include "SDRAM.h"
 
 class GigaDisplay_GFX : public Adafruit_GFX {
@@ -45,12 +54,18 @@ class GigaDisplay_GFX : public Adafruit_GFX {
     uint16_t *buffer = nullptr; ///< Raster data: no longer private, allow subclass access
 
   private:
+#ifdef __MBED__
     Arduino_H7_Video* display;
+    rtos::Thread* _refresh_thd;
     void refresh_if_needed();
+#elif defined(__ZEPHYR__)
+    Display* display;
+    uint32_t sizeof_framebuffer;
+#endif
     //bool need_refresh = false;
     bool buffering = false;
     uint32_t last_refresh = 0;
-    rtos::Thread* _refresh_thd;
+
 };
 
 #endif //__ARDUINO_GIGADISPLAY_GFX__
