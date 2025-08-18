@@ -38,6 +38,11 @@ class GigaDisplay_GFX : public Adafruit_GFX {
       return buffer;
     }
 
+    #if defined(__ZEPHYR__)
+    void drawGrayscaleBitmapScaled(int16_t width_image, int16_t height_image, uint8_t scale, uint8_t *pixels);
+    void drawRGBBitmapScaled(int16_t width_image, int16_t height_image, uint8_t scale, uint16_t *pixels);
+    #endif
+
     void startWrite();
     void endWrite();
     void startBuffering();

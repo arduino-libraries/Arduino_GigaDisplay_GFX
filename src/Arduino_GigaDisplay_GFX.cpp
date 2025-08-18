@@ -59,7 +59,7 @@ void GigaDisplay_GFX::begin() {
 #endif    
     sizeof_framebuffer = this->width() * this-> height() * sizeof(uint16_t);
     this->display->setFrameDesc(this->width(), this-> height(), this-> width(), sizeof_framebuffer);
-    Serial.print("Buffer: 0x"); Serial.println((uint32_t)buffer, HEX);
+    //Serial.print("Buffer: 0x"); Serial.println((uint32_t)buffer, HEX);
     
     // turn on the display backlight
     pinMode(74, OUTPUT);
@@ -290,3 +290,38 @@ void GigaDisplay_GFX::drawFastRawHLine(int16_t x, int16_t y, int16_t w,
   }
   endWrite();
 }
+
+
+#if defined(__ZEPHYR__)
+void GigaDisplay_GFX::drawGrayscaleBitmapScaled(int16_t width_image, int16_t height_image, uint8_t scale, uint8_t *pixels) {
+  
+  int yDisplay = (height() - (height_image * scale)) / 2;
+  
+  for (int yCamera = 0; yCamera < height_image; yCamera++) {
+    int xDisplay = (width() - (width_image * scale)) / 2;
+    for (int xCamera = 0; xCamera < width_image; xCamera++) {
+      uint16_t rgbPixel = color565(*pixels, *pixels, *pixels);
+      fillRect(xDisplay, yDisplay, scale, scale, rgbPixel);
+      pixels++;
+      xDisplay += scale;
+    }
+    yDisplay += scale;
+  }
+}
+
+void GigaDisplay_GFX::drawRGBBitmapScaled(int16_t width_image, int16_t height_image, uint8_t scale, uint16_t *pixels) {
+  
+  int yDisplay = (height() - (height_image * scale)) / 2;
+  
+  for (int yCamera = 0; yCamera < height_image; yCamera++) {
+    int xDisplay = (width() - (width_image * scale)) / 2;
+    for (int xCamera = 0; xCamera < width_image; xCamera++) {
+      fillRect(xDisplay, yDisplay, scale, scale, *pixels++);
+      xDisplay += scale;
+    }
+    yDisplay += scale;
+  }
+  
+}
+  
+#endif
