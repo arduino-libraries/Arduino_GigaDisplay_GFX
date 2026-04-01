@@ -1,3 +1,10 @@
+/*
+  GigaDisplay GFX - Demo
+  This sketch performs a comprehensive speed test of the GFX library, 
+  measuring performance for text, lines, shapes, and rotations.
+  Optimized for Landscape mode (800x480) on the Arduino Giga Display.
+*/
+
 #include "Arduino_GigaDisplay_GFX.h"
 
 GigaDisplay_GFX tft;
@@ -16,6 +23,9 @@ void setup() {
   Serial.println("GC9A01A Test!");
 
   tft.begin();
+  // Rotate 90° clockwise to Landscape (800x480)
+  // By default, width is the short side (480)
+  tft.setRotation(1);
 
   Serial.println(F("Benchmark                Time (microseconds)"));
   delay(10);

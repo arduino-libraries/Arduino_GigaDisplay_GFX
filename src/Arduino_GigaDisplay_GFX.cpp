@@ -1,47 +1,61 @@
 
 #include "Arduino_GigaDisplay_GFX.h"
+
+#ifdef __MBED__
 #include "platform/mbed_critical.h"
+#endif
 
-GigaDisplay_GFX::GigaDisplay_GFX() : Adafruit_GFX(480, 800) {
-
-}
+GigaDisplay_GFX::GigaDisplay_GFX() : Adafruit_GFX(480, 800) { }
 
 GigaDisplay_GFX::~GigaDisplay_GFX(void) {
   if (buffer)
     free(buffer);
 }
 
-//rtos::Semaphore refresh_sem(1);
-
+#ifdef __MBED__
 void GigaDisplay_GFX::refresh_if_needed() {
   while (1) {
     rtos::ThisThread::flags_wait_any(0x1);
-    //refresh_sem.acquire();
     dsi_lcdDrawImage((void *) this->getBuffer(), (void *)(dsi_getActiveFrameBuffer()), 480, 800, DMA2D_INPUT_RGB565);
-    //dsi_lcdDrawImage((void *) this->getBuffer(), (void *)(dsi_getActiveFrameBuffer()), this->width(), this->height(), DMA2D_INPUT_RGB565);
-    //refresh_sem.release();
     delay(10);
   }
 }
-
+#endif
 
 void GigaDisplay_GFX::begin() {
-    display = new Arduino_H7_Video(480, 800, GigaDisplayShield);
+    display = new Arduino_Video(480, 800, GigaDisplayShield);
     display->begin();
-    buffer = (uint16_t*)ea_malloc(this->width() * this-> height() * 2);
-    _refresh_thd = new rtos::Thread(osPriorityHigh);
-    _refresh_thd->start(mbed::callback(this, &GigaDisplay_GFX::refresh_if_needed));
-    //buffer = (uint16_t*)dsi_getActiveFrameBuffer();
+
+    #ifdef __MBED__
+      buffer = (uint16_t*)ea_malloc(this->width() * this-> height() * 2);
+      _refresh_thd = new rtos::Thread(osPriorityHigh);
+      _refresh_thd->start(mbed::callback(this, &GigaDisplay_GFX::refresh_if_needed));
+    #elif defined(__ZEPHYR__)
+      #ifdef CONFIG_SHARED_MULTI_HEAP
+        void* ptrFB = this->display->getFramebuffer();
+        if (ptrFB == nullptr){
+          while(1){}
+        }
+        // Cast the void pointer to an int pointer to use it
+        buffer = static_cast<uint16_t*>(ptrFB);
+      #else
+        SDRAM.begin();
+        buffer = (uint16_t*)SDRAM.malloc(this->width() * this-> height() * sizeof(uint16_t));
+      #endif   
+      this->display->setFrameDesc(this->width(), this->height(), this->width(), (this->width() * this-> height() * sizeof(uint16_t)));
+    #endif
 }
 
-void GigaDisplay_GFX::startWrite() {
-  //refresh_sem.acquire();
-}
+void GigaDisplay_GFX::startWrite() { }
 
 void GigaDisplay_GFX::endWrite() {
-  //refresh_sem.release();
+#ifdef __MBED__
   if (!buffering)
     _refresh_thd->flags_set(0x1);
+#elif defined(__ZEPHYR__)
+  if (!buffering)
+     this->display->drawBuffer(0, 0, buffer);
+#endif
 }
 
 // If buffering, defer endWrite calls until endBuffering is called.
@@ -50,8 +64,7 @@ void GigaDisplay_GFX::startBuffering() {
 }
 
 void GigaDisplay_GFX::endBuffering() {
-  if (buffering)
-  {
+  if (buffering) {
     buffering = false;
     endWrite();
   }
