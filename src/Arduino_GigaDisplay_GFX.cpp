@@ -5,31 +5,33 @@
 #include "platform/mbed_critical.h"
 #endif
 
-GigaDisplay_GFX::GigaDisplay_GFX() : Adafruit_GFX(480, 800) { }
+ArduinoVideoDisplay_GFX::ArduinoVideoDisplay_GFX(uint16_t w, uint16_t h) : Adafruit_GFX(w, h) { }
 
-GigaDisplay_GFX::~GigaDisplay_GFX(void) {
+ArduinoVideoDisplay_GFX::~ArduinoVideoDisplay_GFX(void) {
   if (buffer)
     free(buffer);
 }
 
 #ifdef __MBED__
-void GigaDisplay_GFX::refresh_if_needed() {
+void ArduinoVideoDisplay_GFX::refresh_if_needed() {
   while (1) {
     rtos::ThisThread::flags_wait_any(0x1);
-    dsi_lcdDrawImage((void *) this->getBuffer(), (void *)(dsi_getActiveFrameBuffer()), 480, 800, DMA2D_INPUT_RGB565);
+    dsi_lcdDrawImage((void *) this->getBuffer(), (void *)(dsi_getActiveFrameBuffer()), this->width(), this->height(), DMA2D_INPUT_RGB565);
     delay(10);
   }
 }
 #endif
 
-void GigaDisplay_GFX::begin() {
-    display = new Arduino_Video(480, 800, GigaDisplayShield);
+void ArduinoVideoDisplay_GFX::begin() {
+
+    // Let the subclass allocate the video device.
+    display = allocateArduinoVideoDevice();  
     display->begin();
 
     #ifdef __MBED__
       buffer = (uint16_t*)ea_malloc(this->width() * this-> height() * 2);
       _refresh_thd = new rtos::Thread(osPriorityHigh);
-      _refresh_thd->start(mbed::callback(this, &GigaDisplay_GFX::refresh_if_needed));
+      _refresh_thd->start(mbed::callback(this, &ArduinoVideoDisplay_GFX::refresh_if_needed));
     #elif defined(__ZEPHYR__)
       #ifdef CONFIG_SHARED_MULTI_HEAP
         void* ptrFB = this->display->getFramebuffer();
@@ -46,9 +48,9 @@ void GigaDisplay_GFX::begin() {
     #endif
 }
 
-void GigaDisplay_GFX::startWrite() { }
+void ArduinoVideoDisplay_GFX::startWrite() { }
 
-void GigaDisplay_GFX::endWrite() {
+void ArduinoVideoDisplay_GFX::endWrite() {
 #ifdef __MBED__
   if (!buffering)
     _refresh_thd->flags_set(0x1);
@@ -59,18 +61,18 @@ void GigaDisplay_GFX::endWrite() {
 }
 
 // If buffering, defer endWrite calls until endBuffering is called.
-void GigaDisplay_GFX::startBuffering() {
+void ArduinoVideoDisplay_GFX::startBuffering() {
   buffering = true;
 }
 
-void GigaDisplay_GFX::endBuffering() {
+void ArduinoVideoDisplay_GFX::endBuffering() {
   if (buffering) {
     buffering = false;
     endWrite();
   }
 }
 
-void GigaDisplay_GFX::drawPixel(int16_t x, int16_t y, uint16_t color) {
+void ArduinoVideoDisplay_GFX::drawPixel(int16_t x, int16_t y, uint16_t color) {
   if (hasBuffer()) {
     if ((x < 0) || (y < 0) || (x >= _width) || (y >= _height))
       return;
@@ -97,7 +99,7 @@ void GigaDisplay_GFX::drawPixel(int16_t x, int16_t y, uint16_t color) {
   }
 }
 
-uint16_t GigaDisplay_GFX::getPixel(int16_t x, int16_t y) {
+uint16_t ArduinoVideoDisplay_GFX::getPixel(int16_t x, int16_t y) {
   int16_t t;
   switch (rotation) {
     case 1:
@@ -118,7 +120,7 @@ uint16_t GigaDisplay_GFX::getPixel(int16_t x, int16_t y) {
   return getRawPixel(x, y);
 }
 
-uint16_t GigaDisplay_GFX::getRawPixel(int16_t x, int16_t y) {
+uint16_t ArduinoVideoDisplay_GFX::getRawPixel(int16_t x, int16_t y) {
   if ((x < 0) || (y < 0) || (x >= WIDTH) || (y >= HEIGHT))
     return 0;
   if (hasBuffer()) {
@@ -127,7 +129,7 @@ uint16_t GigaDisplay_GFX::getRawPixel(int16_t x, int16_t y) {
   return 0;
 }
 
-void GigaDisplay_GFX::fillScreen(uint16_t color) {
+void ArduinoVideoDisplay_GFX::fillScreen(uint16_t color) {
   if (hasBuffer()) {
 	startWrite();	// PR #3
     uint8_t hi = color >> 8, lo = color & 0xFF;
@@ -142,7 +144,7 @@ void GigaDisplay_GFX::fillScreen(uint16_t color) {
   }
 }
 
-void GigaDisplay_GFX::byteSwap(void) {
+void ArduinoVideoDisplay_GFX::byteSwap(void) {
   if (hasBuffer()) {
     uint32_t i, pixels = WIDTH * HEIGHT;
     for (i = 0; i < pixels; i++)
@@ -150,7 +152,7 @@ void GigaDisplay_GFX::byteSwap(void) {
   }
 }
 
-void GigaDisplay_GFX::drawFastVLine(int16_t x, int16_t y, int16_t h,
+void ArduinoVideoDisplay_GFX::drawFastVLine(int16_t x, int16_t y, int16_t h,
                                     uint16_t color) {
   if (h < 0) { // Convert negative heights to positive equivalent
     h *= -1;
@@ -196,7 +198,7 @@ void GigaDisplay_GFX::drawFastVLine(int16_t x, int16_t y, int16_t h,
   }
 }
 
-void GigaDisplay_GFX::drawFastHLine(int16_t x, int16_t y, int16_t w,
+void ArduinoVideoDisplay_GFX::drawFastHLine(int16_t x, int16_t y, int16_t w,
                                     uint16_t color) {
   if (w < 0) { // Convert negative widths to positive equivalent
     w *= -1;
@@ -242,7 +244,7 @@ void GigaDisplay_GFX::drawFastHLine(int16_t x, int16_t y, int16_t w,
   }
 }
 
-void GigaDisplay_GFX::drawFastRawVLine(int16_t x, int16_t y, int16_t h,
+void ArduinoVideoDisplay_GFX::drawFastRawVLine(int16_t x, int16_t y, int16_t h,
                                        uint16_t color) {
   startWrite();
   // x & y already in raw (rotation 0) coordinates, no need to transform.
@@ -254,7 +256,7 @@ void GigaDisplay_GFX::drawFastRawVLine(int16_t x, int16_t y, int16_t h,
   endWrite();
 }
 
-void GigaDisplay_GFX::drawFastRawHLine(int16_t x, int16_t y, int16_t w,
+void ArduinoVideoDisplay_GFX::drawFastRawHLine(int16_t x, int16_t y, int16_t w,
                                        uint16_t color) {
   startWrite();
   // x & y already in raw (rotation 0) coordinates, no need to transform.
@@ -264,3 +266,24 @@ void GigaDisplay_GFX::drawFastRawHLine(int16_t x, int16_t y, int16_t w,
   }
   endWrite();
 }
+
+//=============================================================================
+// Sub class for Arduino Giga Display
+//=============================================================================
+GigaDisplay_GFX::GigaDisplay_GFX() : ArduinoVideoDisplay_GFX(480, 800) {}
+
+Arduino_Video* GigaDisplay_GFX::allocateArduinoVideoDevice() {
+    return new Arduino_Video(480, 800, GigaDisplayShield);
+}
+
+//=============================================================================
+// Sub class for Portenta H7 USBC Viideo
+//=============================================================================
+#if defined(ARDUINO_PORTENTA_H7_M7)
+
+ArduinoUSBCVideo_GFX::ArduinoUSBCVideo_GFX() : ArduinoVideoDisplay_GFX(1024, 768) {}
+
+Arduino_Video* ArduinoUSBCVideo_GFX::allocateArduinoVideoDevice() {
+    return new Arduino_Video(1024, 768, USBCVideo);
+}
+#endif // ARDUINO_PORTENTA_H7_M7

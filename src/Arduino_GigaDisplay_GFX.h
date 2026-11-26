@@ -16,10 +16,10 @@ using Arduino_Video = Arduino_H7_Video;
 #include "SDRAM.h"
 #endif
 
-class GigaDisplay_GFX : public Adafruit_GFX {
+class ArduinoVideoDisplay_GFX : public Adafruit_GFX {
   public:
-    GigaDisplay_GFX();
-    ~GigaDisplay_GFX(void);
+    ArduinoVideoDisplay_GFX(uint16_t w, uint16_t h);
+    ~ArduinoVideoDisplay_GFX(void);
     void begin();
     void drawPixel(int16_t x, int16_t y, uint16_t color);
     void fillScreen(uint16_t color);
@@ -51,6 +51,7 @@ class GigaDisplay_GFX : public Adafruit_GFX {
     void drawFastRawVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
     void drawFastRawHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
     uint16_t *buffer = nullptr; ///< Raster data: no longer private, allow subclass access
+    virtual Arduino_Video* allocateArduinoVideoDevice() = 0;  // allow the sub-classes to allocate for us.
 
   private:
     Arduino_Video* display;
@@ -61,5 +62,21 @@ class GigaDisplay_GFX : public Adafruit_GFX {
     bool buffering = false;
     uint32_t last_refresh = 0;
 };
+
+class GigaDisplay_GFX : public ArduinoVideoDisplay_GFX {
+  public:
+    GigaDisplay_GFX();
+    virtual Arduino_Video* allocateArduinoVideoDevice();
+
+};
+
+#if defined(ARDUINO_PORTENTA_H7_M7)
+class ArduinoUSBCVideo_GFX : public ArduinoVideoDisplay_GFX {
+  public:
+    ArduinoUSBCVideo_GFX();
+    virtual Arduino_Video* allocateArduinoVideoDevice();
+
+};
+#endif // ARDUINO_PORTENTA_H7_M7
 
 #endif //__ARDUINO_GIGADISPLAY_GFX__
